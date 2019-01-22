@@ -17,6 +17,14 @@
 
 set(ARROW_DOWNLOAD_BINARY_DIR ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/thirdparty/arrow-download/)
 
+if(NOT CMAKE_CXX11_ABI)
+    message(STATUS "ARROW: Disabling the GLIBCXX11 ABI")
+    list(APPEND ARROW_CMAKE_ARGS " -DARROW_TENSORFLOW=ON")
+elseif(CMAKE_CXX11_ABI)
+    message(STATUS "ARROW: Enabling the GLIBCXX11 ABI")
+    list(APPEND ARROW_CMAKE_ARGS " -DARROW_TENSORFLOW=OFF")
+endif(NOT CMAKE_CXX11_ABI)
+
 # Download and unpack arrow at configure time
 configure_file(${CMAKE_SOURCE_DIR}/cmake/Templates/Arrow.CMakeLists.txt.cmake ${ARROW_DOWNLOAD_BINARY_DIR}/CMakeLists.txt COPYONLY)
 
