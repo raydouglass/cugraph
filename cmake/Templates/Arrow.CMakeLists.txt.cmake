@@ -33,31 +33,6 @@ message(STATUS "Using Apache Arrow version: ${ARROW_VERSION}")
 
 set(ARROW_URL "https://github.com/apache/arrow/archive/${ARROW_VERSION}.tar.gz")
 
-set(ARROW_CMAKE_ARGS
-    #Arrow dependencies
-    -DARROW_WITH_LZ4=OFF
-    -DARROW_WITH_ZSTD=OFF
-    -DARROW_WITH_BROTLI=OFF
-    -DARROW_WITH_SNAPPY=OFF
-    -DARROW_WITH_ZLIB=OFF
-
-    #Build settings
-    -DARROW_BUILD_STATIC=ON
-    -DARROW_BUILD_SHARED=OFF
-    -DARROW_BOOST_USE_SHARED=ON
-    -DARROW_BUILD_TESTS=OFF
-    -DARROW_TEST_MEMCHECK=OFF
-    -DARROW_BUILD_BENCHMARKS=OFF
-
-    #Arrow modules
-    -DARROW_IPC=ON
-    -DARROW_COMPUTE=OFF
-    -DARROW_GPU=OFF
-    -DARROW_JEMALLOC=OFF
-    -DARROW_BOOST_VENDORED=OFF
-    -DARROW_PYTHON=OFF
-)
-
 if (${ARROW_VERSION} STREQUAL "apache-arrow-0.9.0")
   # Keep ARROW_HDFS=ON to workaround arrow-0.9 bug that disables
   # boost_regex. See https://issues.apache.org/jira/browse/ARROW-2903

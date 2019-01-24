@@ -7,6 +7,20 @@ cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
 
 project(CUGRAPH_TESTS LANGUAGES C CXX)
 
+if(CMAKE_COMPILER_IS_GNUCXX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+
+    option(CMAKE_CXX11_ABI "Enable the GLIBCXX11 ABI" OFF)
+    if(CMAKE_CXX11_ABI)
+        message(STATUS "cuGraph Tests: Enabling the GLIBCXX11 ABI")
+    else()
+        message(STATUS "cuGraph Tests: Disabling the GLIBCXX11 ABI")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
+        set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -D_GLIBCXX_USE_CXX11_ABI=0")
+    endif(CMAKE_CXX11_ABI)
+endif(CMAKE_COMPILER_IS_GNUCXX)
+
 ###################################################################################################
 # - add nvgraph -----------------------------------------------------------------------------------
 if(NOT TARGET NVGRAPH AND NVG_PLUGIN)
@@ -27,9 +41,9 @@ endif(NOT TARGET NVGRAPH AND NVG_PLUGIN)
 ###################################################################################################
 # - compiler function -----------------------------------------------------------------------------
 function(configure_test TEST_NAME Tests_SRCS)
-#    message(STATUS "${TEST_NAME} will link against: gdf, cugraph")
+    message(STATUS "${TEST_NAME} will link against")
     cuda_add_executable(${TEST_NAME} ${Tests_SRCS})
-    target_link_libraries(${TEST_NAME} gmock_main gmock GTest::GTest cudf cugraph)
+    target_link_libraries(${TEST_NAME} gmock_main gmock GTest::GTest NVStrings cudf cugraph)
     if(NVG_PLUGIN)
         if(NOT TARGET nvgraph)
             add_library( nvgraph SHARED IMPORTED)

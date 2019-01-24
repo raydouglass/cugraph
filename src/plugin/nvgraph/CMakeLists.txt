@@ -52,6 +52,20 @@ IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-g;-G;-lineinfo)
 ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 
+if(CMAKE_COMPILER_IS_GNUCXX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+
+    option(CMAKE_CXX11_ABI "Enable the GLIBCXX11 ABI" OFF)
+    if(CMAKE_CXX11_ABI)
+        message(STATUS "Plugin: Enabling the GLIBCXX11 ABI")
+    else()
+        message(STATUS "Plugin: Disabling the GLIBCXX11 ABI")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
+        set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -D_GLIBCXX_USE_CXX11_ABI=0")
+    endif(CMAKE_CXX11_ABI)
+endif(CMAKE_COMPILER_IS_GNUCXX)
+
 ###################################################################################################
 # - add cudf --------------------------------------------------------------------------------------
 if(NOT TARGET cudf)

@@ -52,7 +52,7 @@ if(CUDA_FOUND)
     # TODO: remove this when modern GPU is removed or fixed to use shfl_sync
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -Wno-deprecated-declarations; -Xptxas --disable-warnings)
     # set warnings as errors
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-Werror cross-execution-space-call;-Xcompiler -Wall,-Wno-error=sign-compare)
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-Werror cross-execution-space-call;-Xcompiler -Wall,-Wno-error=sign-compare,-Wno-error=unused-but-set-variable)
 
     message(STATUS "CUDA_NVCC_FLAGS: ${CUDA_NVCC_FLAGS}")
 else()
@@ -76,6 +76,19 @@ IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-g;-G;-lineinfo)
 ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 
+if(CMAKE_COMPILER_IS_GNUCXX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+
+    option(CMAKE_CXX11_ABI "Enable the GLIBCXX11 ABI" OFF)
+    if(CMAKE_CXX11_ABI)
+        message(STATUS "cuGraph: Enabling the GLIBCXX11 ABI")
+    else()
+        message(STATUS "cuGraph: Disabling the GLIBCXX11 ABI")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
+        set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -D_GLIBCXX_USE_CXX11_ABI=0")
+    endif(CMAKE_CXX11_ABI)
+endif(CMAKE_COMPILER_IS_GNUCXX)
 
 ###################################################################################################
 # - cmake custom modules --------------------------------------------------------------------------
@@ -103,7 +116,23 @@ if(EXISTS "${CMAKE_CURRENT_BINARY_DIR}/gunrock/")
 else()
     execute_process(COMMAND ${GIT_EXECUTABLE} clone --recursive  https://github.com/gunrock/gunrock "${CMAKE_CURRENT_BINARY_DIR}/gunrock/")
 endif()
+###################################################################################################
+# - nvstrings -------------------------------------------------------------------------------------
 
+find_file(NVSTRINGS_INCLUDE "NVStrings.h"
+          HINTS "$ENV{NVSTRINGS_ROOT}/include"
+                "$ENV{CONDA_PREFIX}/include")
+find_library(NVSTRINGS_LIBRARY "NVStrings"
+             HINTS "$ENV{NVSTRINGS_ROOT}/lib"
+                   "$ENV{CONDA_PREFIX}/lib")
+add_library(NVStrings SHARED IMPORTED)
+
+if(NVSTRINGS_INCLUDE AND NVSTRINGS_LIBRARY)
+    set_target_properties( NVStrings PROPERTIES IMPORTED_LOCATION ${NVSTRINGS_LIBRARY})
+    message(STATUS "NVStrings found in ${NVSTRINGS_LIBRARY}")
+else()
+    message(FATAL_ERROR "NVStrings not found. Please check your settings.")
+endif(NVSTRINGS_INCLUDE AND NVSTRINGS_LIBRARY)
 ###################################################################################################
 # - add cudf --------------------------------------------------------------------------------------
 find_path(CUDF_INCLUDE "cudf"
@@ -157,7 +186,7 @@ cuda_add_library(cugraph SHARED
 
 ###################################################################################################
 # - link libraries --------------------------------------------------------------------------------
-target_link_libraries(cugraph cudf)
+target_link_libraries(cugraph cudf NVStrings)
 target_link_libraries(cugraph ${Boost_LIBRARIES})
 # Command to symlink files into the build directory
 add_custom_command(  # link the include directory
