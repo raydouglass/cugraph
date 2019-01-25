@@ -38,43 +38,43 @@ set(CMAKE_CUDA_STANDARD_REQURIED ON)
 
 #set(CUDA_USE_STATIC_CUDA_RUNTIME OFF CACHE INTERNAL "")
 
-find_package(CUDA)
-set_package_properties(
-    CUDA PROPERTIES TYPE REQUIRED
-    PURPOSE "NVIDIA CUDA® parallel computing platform and programming model."
-    URL "https://developer.nvidia.com/cuda-zone")
+#find_package(CUDA)
+#set_package_properties(
+#    CUDA PROPERTIES TYPE REQUIRED
+#    PURPOSE "NVIDIA CUDA® parallel computing platform and programming model."
+#    URL "https://developer.nvidia.com/cuda-zone")
 
-if(CUDA_FOUND)
-    message(STATUS "CUDA ${CUDA_VERSION} found in ${CUDA_TOOLKIT_ROOT_DIR}")
+#if(CUDA_FOUND)
+#    message(STATUS "CUDA ${CUDA_VERSION} found in ${CUDA_TOOLKIT_ROOT_DIR}")
 
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-std=c++11;--expt-extended-lambda; -Xcompiler -rdynamic -lineinfo)
-    # Suppress SHFL warnings caused by modern GPU.
-    # TODO: remove this when modern GPU is removed or fixed to use shfl_sync
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -Wno-deprecated-declarations; -Xptxas --disable-warnings)
-    # set warnings as errors
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-Werror cross-execution-space-call;-Xcompiler -Wall,-Wno-error=sign-compare,-Wno-error=unused-but-set-variable)
+#    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-std=c++11;--expt-extended-lambda; -Xcompiler -rdynamic -lineinfo)
+#    # Suppress SHFL warnings caused by modern GPU.
+#    # TODO: remove this when modern GPU is removed or fixed to use shfl_sync
+#    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}; -Wno-deprecated-declarations; -Xptxas --disable-warnings)
+#    # set warnings as errors
+#    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-Werror cross-execution-space-call;-Xcompiler -Wall,-Wno-error=sign-compare,-Wno-error=unused-but-set-variable)
 
-    message(STATUS "CUDA_NVCC_FLAGS: ${CUDA_NVCC_FLAGS}")
-else()
-    message(FATAL_ERROR "CUDA not found, please check your settings.")
-endif()
+#    message(STATUS "CUDA_NVCC_FLAGS: ${CUDA_NVCC_FLAGS}")
+#else()
+#    message(FATAL_ERROR "CUDA not found, please check your settings.")
+#endif()
 
 message(STATUS "Using C++ standard: c++${CMAKE_CXX_STANDARD}")
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/" ${CMAKE_MODULE_PATH})
 message(STATUS "CMAKE_MODULE_PATH:" "${CMAKE_MODULE_PATH}")
 
-IF(CUDA_VERSION_MAJOR GREATER 7)
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode;arch=compute_60,code=sm_60)
-ENDIF(CUDA_VERSION_MAJOR GREATER 7)
+#IF(CUDA_VERSION_MAJOR GREATER 7)
+#    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode;arch=compute_60,code=sm_60)
+#ENDIF(CUDA_VERSION_MAJOR GREATER 7)
 
-IF(CUDA_VERSION_MAJOR GREATER 8)
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode;arch=compute_70,code=sm_70)
-ENDIF(CUDA_VERSION_MAJOR GREATER 8)
+#IF(CUDA_VERSION_MAJOR GREATER 8)
+#    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode;arch=compute_70,code=sm_70)
+#ENDIF(CUDA_VERSION_MAJOR GREATER 8)
 
-IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-g;-G;-lineinfo)
-ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
+#IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
+#    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-g;-G;-lineinfo)
+#ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 
 if(CMAKE_COMPILER_IS_GNUCXX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
@@ -89,6 +89,23 @@ if(CMAKE_COMPILER_IS_GNUCXX)
         set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -D_GLIBCXX_USE_CXX11_ABI=0")
     endif(CMAKE_CXX11_ABI)
 endif(CMAKE_COMPILER_IS_GNUCXX)
+
+# Keith testing space
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_60,code=sm_60")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -gencode=arch=compute_70,code=sm_70 -gencode=arch=compute_70,code=compute_70")
+
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-extended-lambda -Xcompiler -rdynamic -lineinfo")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Werror cross-execution-space-call -Wno-deprecated-declarations -Xptxas --disable-warnings")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Wno-deprecated-declarations -Xptxas --disable-warnings")
+set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Werror cross-execution-space-call -Xcompiler -Wall,-Wno-error=sign-compare,-Wno-error=unused-but-set-variable")
+
+# Debug options
+if(CMAKE_BUILD_TYPE MATCHES Debug)
+    message(STATUS "Building with debugging flags")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -g -G -lineinfo")
+endif(CMAKE_BUILD_TYPE MATCHES Debug)
+
+message(STATUS "CMAKE_CUDA_FLAGS: ${CMAKE_CUDA_FLAGS}")
 
 ###################################################################################################
 # - cmake custom modules --------------------------------------------------------------------------
@@ -162,7 +179,7 @@ endif()
 include_directories(
     "${CMAKE_CURRENT_SOURCE_DIR}/include" 
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
-    "${CUDA_INCLUDE_DIRS}" 
+    "${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}" 
     "${CUDF_INCLUDE}"
     "${CMAKE_CURRENT_BINARY_DIR}/gunrock/"
     "${CMAKE_CURRENT_BINARY_DIR}/gunrock/externals/moderngpu/include"
@@ -172,7 +189,7 @@ include_directories(
 
 ###################################################################################################
 # - library targets -------------------------------------------------------------------------------
-cuda_add_library(cugraph SHARED
+add_library(cugraph SHARED
     src/grmat.cu
     src/cugraph.cu
     src/pagerank.cu
